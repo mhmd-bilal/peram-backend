@@ -1,6 +1,7 @@
-var express = require('express');
+import express from 'express';
+import supabase from '../supabase'; // Ensure you have the correct path to your Supabase client
+
 var router = express.Router();
-const supabase = require('../supabase'); // Ensure you have the correct path to your Supabase client
 
 /**
  * @swagger
@@ -88,7 +89,7 @@ const supabase = require('../supabase'); // Ensure you have the correct path to 
  */
 
 // User registration
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: any, res: any) => {
   const { email, password } = req.body;
 
   try {
@@ -106,7 +107,7 @@ router.post('/register', async (req, res) => {
 });
 
 // User login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: any, res: any) => {
   const { email, password } = req.body;
 
   try {
@@ -124,7 +125,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Get user profile
-router.get('/profile', async (req, res) => {
+router.get('/profile', async (req: any, res: any) => {
   const token = req.headers.authorization?.split(' ')[1]; // Extract Bearer token
 
   try {
@@ -139,7 +140,7 @@ router.get('/profile', async (req, res) => {
 });
 
 // User logout
-router.post('/logout', async (req, res) => {
+router.post('/logout', async (req: any, res: any) => {
   const token = req.headers.authorization?.split(' ')[1];
 
   try {
@@ -153,4 +154,4 @@ router.post('/logout', async (req, res) => {
   }
 });
 
-module.exports = router; 
+export default router;

@@ -1,7 +1,8 @@
-var express = require('express');
-var router = express.Router();
-const supabase = require('../supabase'); // Ensure you have the correct path to your Supabase client
-const WebSocket = require('ws');
+import express from 'express';
+import supabase from '../supabase'; // Ensure you have the correct path to your Supabase client
+import WebSocket from 'ws';
+
+var router = express.Router({ mergeParams: true });
 
 /**
  * @swagger
@@ -99,7 +100,7 @@ const WebSocket = require('ws');
  */
 
 // Middleware to check authentication
-const authenticate = async (req, res, next) => {
+const authenticate = async (req: any, res: any, next: (err?: any) => any) => {
   const token = req.headers.authorization?.split(' ')[1]; // Extract Bearer token
   const { data, error } = await supabase.auth.getUser(token);
 
@@ -112,23 +113,21 @@ const authenticate = async (req, res, next) => {
 };
 
 // Add a new product
-router.post('/add', authenticate, async (req, res) => {
+router.post('/add', authenticate, async (req: any, res: any) => {
   const { name, description, starting_price, closing_at } = req.body;
   const seller_id = req.user.id; // Get the authenticated user's ID
 
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .insert([
-        {
-          seller_id,
-          name,
-          description,
-          starting_price,
-          current_price: starting_price, // Set current price to starting price
-          closing_at,
-        },
-      ]);
+    const { data, error }: { data: any; error: any } = await supabase.from('products').insert([
+      {
+        seller_id,
+        name,
+        description,
+        starting_price,
+        current_price: starting_price, // Set current price to starting price
+        closing_at,
+      },
+    ]);
 
     if (error) return res.status(400).json({ error: error.message });
 
@@ -139,30 +138,28 @@ router.post('/add', authenticate, async (req, res) => {
 });
 
 // Place a bid on a product
-router.post('/bid', authenticate, async (req, res) => {
+router.post('/bid', authenticate, async (req: any, res: any) => {
   const { product_id, bid_amount } = req.body;
   const buyer_id = req.user.id; // Get the authenticated user's ID
 
   try {
-    const { data, error } = await supabase
-      .from('bids')
-      .insert([
-        {
-          product_id,
-          buyer_id,
-          bid_amount,
-        },
-      ]);
+    const { data, error }: { data: any; error: any } = await supabase.from('bids').insert([
+      {
+        product_id,
+        buyer_id,
+        bid_amount,
+      },
+    ]);
 
     if (error) return res.status(400).json({ error: error.message });
 
     // Notify all connected clients about the new bid
-    const message = JSON.stringify({ product_id, bid_amount, buyer_id });
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
+    // const message = JSON.stringify({ product_id, bid_amount, buyer_id });
+    // wss.clients.forEach((client) => {
+    //   if (client.readyState === WebSocket.OPEN) {
+    //     client.send(message);
+    //   }
+    // });
 
     res.status(201).json({ message: 'Bid placed successfully', bid: data[0] });
   } catch (err) {
@@ -171,7 +168,7 @@ router.post('/bid', authenticate, async (req, res) => {
 });
 
 // Get all products
-router.get('/', async (req, res) => {
+router.get('/', async (req: any, res: any) => {
   try {
     const { data, error } = await supabase.from('products').select('*');
 
@@ -184,24 +181,17 @@ router.get('/', async (req, res) => {
 });
 
 // Get a specific product by ID along with its bids
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: any, res: any) => {
   const { id } = req.params;
 
   try {
     // Fetch the product details
-    const { data: product, error: productError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data: product, error: productError } = await supabase.from('products').select('*').eq('id', id).single();
 
     if (productError) return res.status(400).json({ error: productError.message });
 
     // Fetch the bids for the product
-    const { data: bids, error: bidsError } = await supabase
-      .from('bids')
-      .select('*')
-      .eq('product_id', id);
+    const { data: bids, error: bidsError } = await supabase.from('bids').select('*').eq('product_id', id);
 
     if (bidsError) return res.status(400).json({ error: bidsError.message });
 
@@ -212,4 +202,4 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+export default router;
