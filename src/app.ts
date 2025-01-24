@@ -1,27 +1,23 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-const supabase = require('./supabase');
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var productsRouter = require('./routes/products');
-var authRouter = require('./routes/auth');
-const pool = require('./db');
-const swaggerJsDoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
-const WebSocket = require('ws');
-var cors = require('cors')
+import createError from 'http-errors';
+import express from 'express';
+import path from 'path';
+import cookieParser from 'cookie-parser';
+import logger from 'morgan';
+import supabase from './supabase';
+import indexRouter from './routes/index';
+import usersRouter from './routes/users';
+import productsRouter from './routes/products';
+import authRouter from './routes/auth';
+import pool from './db';
+import swaggerJsDoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import WebSocket from 'ws';
 
 var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
-app.use(cors({
-  origin: 'http://localhost:3000'
-}));
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -39,9 +35,13 @@ app.get('/products/new', async (req, res) => {
     const result = await pool.query('SELECT * FROM products');
     res.json(result.rows);
   } catch (err) {
-    console.error(err.message);
+    // console.error(err.message);
     res.status(500).send('Server Error');
   }
+});
+
+app.get('/public', (req, res) => {
+  res.sendStatus(200).send('akilan');
 });
 
 // Example route: Add a new product
@@ -54,7 +54,7 @@ app.post('/products/new', async (req, res) => {
     );
     res.json(result.rows[0]);
   } catch (err) {
-    console.error(err.message);
+    // console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
@@ -118,12 +118,12 @@ server.on('upgrade', (request, socket, head) => {
 });
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err: any, req: any, res: any, next: (err?: any) => any) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
