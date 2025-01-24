@@ -1,8 +1,7 @@
-// authMiddleware.js
-const supabase = require('./supabase');
+import supabase from './supabase';
 
-const authenticate = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Extract Bearer token
+const authenticate = async (req: any, res: any, next: (err?: any) => any) => {
+  const token = req.headers?.authorization?.split(' ')[1]; // Extract Bearer token
 
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized' });
