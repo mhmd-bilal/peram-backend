@@ -4,16 +4,20 @@
   "private": true,
   "scripts": {
     "start": "node ./src/bin/www",
-    "dev": "nodemon ./src/app.ts"
+    "dev": "nodemon ./src/server.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.14",
+    "bcryptjs": "^2.4.3",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
     "debug": "~2.6.9",
     "dotenv": "^16.4.7",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
+    "jsonwebtoken": "^9.0.2",
+    "moment": "^2.30.1",
+    "mongoose": "^8.9.5",
     "morgan": "~1.9.1",
     "pg": "^8.13.1",
     "pug": "2.0.0-beta11",
@@ -24,9 +28,12 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/http-errors": "^2.0.4",
+    "@types/jsonwebtoken": "^9.0.8",
     "@types/morgan": "^1.9.9",
     "@types/pg": "^8.11.10",
     "@types/swagger-jsdoc": "^6.0.4",
