@@ -1,5 +1,6 @@
 import createError from 'http-errors';
 import express from 'express';
+import dotenv from 'dotenv';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
@@ -8,10 +9,14 @@ import indexRouter from './routes/index';
 import usersRouter from './routes/users';
 import productsRouter from './routes/products';
 import authRouter from './routes/auth';
+import authMiddleware from './middleware/authMiddleware';
 import pool from './db';
-import swaggerJsDoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
+import { swaggerDocs, swaggerUi } from './swagger';
 import WebSocket from 'ws';
+import mongoose from 'mongoose';
+import cors from 'cors';
+
+dotenv.config();
 
 var app = express();
 
@@ -24,11 +29,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
+
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGO_URI!)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch((err) => console.error('MongoDB connection error:', err));
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.use('/', indexRouter);
+app.use('/auth', authRouter);
+
+app.use(authMiddleware);
+
 app.use('/users', usersRouter);
 app.use('/products', productsRouter);
-app.use('/auth', authRouter);
 
 app.get('/products/new', async (req, res) => {
   try {
@@ -59,35 +76,6 @@ app.post('/products/new', async (req, res) => {
   }
 });
 
-const swaggerOptions = {
-  swaggerDefinition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'API Documentation',
-      version: '1.0.0',
-      description: 'API for second-hand product seller site',
-    },
-    servers: [
-      {
-        url: 'http://localhost:5000',
-      },
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
-    },
-  },
-  apis: ['./routes/*.js'], // Path to the API docs
-};
-
-const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-
 const PORT = process.env.PORT || 5000;
 
 // Create a WebSocket server
@@ -108,7 +96,7 @@ wss.on('connection', (ws) => {
 
 // Upgrade HTTP server to WebSocket server
 const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Vanakam da maple port ${PORT} la irundhu`);
 });
 
 server.on('upgrade', (request, socket, head) => {
