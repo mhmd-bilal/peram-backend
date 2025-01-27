@@ -11,7 +11,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'https://peram-backend.onreader.com/',
+        url: 'https://peram-backend.onrender.com/',
       },
     ],
     components: {
