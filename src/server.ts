@@ -4,12 +4,12 @@ import dotenv from 'dotenv';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
-import supabase from './supabase';
+// import supabase from './supabase';
 import indexRouter from './routes/index';
 import usersRouter from './routes/users';
 import productsRouter from './routes/products';
 import authRouter from './routes/auth';
-import authMiddleware from './middleware/authMiddleware';
+import authMiddleware from './middleware/auth.middleware';
 import pool from './db';
 import { swaggerDocs, swaggerUi } from './swagger';
 import WebSocket from 'ws';
@@ -96,7 +96,7 @@ wss.on('connection', (ws) => {
 
 // Upgrade HTTP server to WebSocket server
 const server = app.listen(PORT, () => {
-  console.log(`Vanakam da maple port ${PORT} la irundhu`);
+  console.log(`Vanakam da maple port: ${PORT} la irundhu`);
 });
 
 server.on('upgrade', (request, socket, head) => {
@@ -121,4 +121,4 @@ app.use(function (err: any, req: any, res: any, next: (err?: any) => any) {
   res.render('error');
 });
 
-module.exports = app;
+export default app;

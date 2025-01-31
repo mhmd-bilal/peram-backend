@@ -1,7 +1,7 @@
 import express, { Response } from 'express';
 import UserTable from '../models/User';
 import { AuthenticatedRequest } from '../types/request.types';
-import { User } from '../types/user.types';
+import checkId from '../middleware/checkId.middleware';
 
 var router = express.Router({ mergeParams: true });
 
@@ -52,11 +52,14 @@ var router = express.Router({ mergeParams: true });
  *         description: Internal server error.
  */
 
+router.use('/profile/:userId', checkId('userId', 'User'));
+
 // Get user profile
-router.get('/profile', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+router.get('/profile/:userId', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
+    const userID = req.params?.userId;
     // Fetch the user's data from the database
-    const user = await UserTable.findById(req?.userId).select('-password'); // Exclude the password field
+    const user = await UserTable.findById(userID).select('-password -__v'); // Exclude the password field
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     // Return the profile data
