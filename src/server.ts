@@ -4,13 +4,12 @@ import dotenv from 'dotenv';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
-// import supabase from './supabase';
 import indexRouter from './routes/index';
 import usersRouter from './routes/users';
+import categoryRoutes from './routes/category';
 import productsRouter from './routes/products';
 import authRouter from './routes/auth';
 import authMiddleware from './middleware/auth.middleware';
-import pool from './db';
 import { swaggerDocs, swaggerUi } from './swagger';
 import WebSocket from 'ws';
 import mongoose from 'mongoose';
@@ -45,35 +44,11 @@ app.use('/auth', authRouter);
 app.use(authMiddleware);
 
 app.use('/users', usersRouter);
+app.use('/categories', categoryRoutes); // Add category routes
 app.use('/products', productsRouter);
-
-app.get('/products/new', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM products');
-    res.json(result.rows);
-  } catch (err) {
-    // console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
 
 app.get('/public', (req, res) => {
   res.sendStatus(200).send('akilan');
-});
-
-// Example route: Add a new product
-app.post('/products/new', async (req, res) => {
-  const { seller_id, name, description, starting_price, closing_at } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO products (seller_id, name, description, starting_price, current_price, closing_at) VALUES ($1, $2, $3, $4, $4, $5) RETURNING *',
-      [seller_id, name, description, starting_price, closing_at]
-    );
-    res.json(result.rows[0]);
-  } catch (err) {
-    // console.error(err.message);
-    res.status(500).send('Server Error');
-  }
 });
 
 const PORT = process.env.PORT || 5000;

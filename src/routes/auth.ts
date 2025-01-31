@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-// import supabase from '../../supabase'; // Ensure you have the correct path to your Supabase client
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import checkRequiredFields from '../middleware/requiredFields.middleware';

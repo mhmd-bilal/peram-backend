@@ -3,7 +3,7 @@ import UserTable from '../models/User';
 import { AuthenticatedRequest } from '../types/request.types';
 import checkId from '../middleware/checkId.middleware';
 
-var router = express.Router({ mergeParams: true });
+const router = express.Router({ mergeParams: true });
 
 /**
  * @swagger
@@ -52,21 +52,22 @@ var router = express.Router({ mergeParams: true });
  *         description: Internal server error.
  */
 
-router.use('/profile/:userId', checkId('userId', 'User'));
-
 // Get user profile
-router.get('/profile/:userId', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
-  try {
-    const userID = req.params?.userId;
-    // Fetch the user's data from the database
-    const user = await UserTable.findById(userID).select('-password -__v'); // Exclude the password field
-    if (!user) return res.status(404).json({ error: 'User not found' });
+router.get(
+  '/profile/:userId',
+  checkId('userId', 'User'),
+  async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+    try {
+      const userID = req.params?.userId;
+      // Fetch the user's data from the database
+      const user = await UserTable.findById(userID).select('-password -__v'); // Exclude the password field
 
-    // Return the profile data
-    res.json({ profile: user });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch profile' });
+      // Return the profile data
+      res.json({ profile: user });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch profile' });
+    }
   }
-});
+);
 
 export default router;

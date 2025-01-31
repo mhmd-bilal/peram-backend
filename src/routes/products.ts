@@ -1,8 +1,12 @@
-import express from 'express';
-import supabase from '../supabase'; // Ensure you have the correct path to your Supabase client
-import WebSocket from 'ws';
+import express, { Request, Response } from 'express';
+import { body, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
+import Product from '../models/Product';
+import { AuthenticatedRequest } from '../types/request.types';
+import checkId from '../middleware/checkId.middleware';
+import Category from '../models/Category';
 
-var router = express.Router({ mergeParams: true });
+const router = express.Router();
 
 /**
  * @swagger
@@ -99,106 +103,146 @@ var router = express.Router({ mergeParams: true });
  *         description: Error in retrieving product
  */
 
-// Middleware to check authentication
-const authenticate = async (req: any, res: any, next: (err?: any) => any) => {
-  const token = req.headers.authorization?.split(' ')[1]; // Extract Bearer token
-  const { data, error } = await supabase.auth.getUser(token);
+// Create a Product
+router.post(
+  '/add',
+  [
+    body('title').trim().notEmpty().withMessage('Title is required'),
+    body('description').trim().notEmpty().withMessage('Description is required'),
+    body('categoryId')
+      .isMongoId()
+      .withMessage('Invalid category ID')
+      .custom(async (value) => {
+        const category = await Category.findById(value);
+        if (!category) throw new Error('Category does not exist');
+        return true;
+      }),
+    body('startingBid').isFloat({ min: 0 }).withMessage('Starting bid must be a positive number'),
+    body('auctionEndTime').isISO8601().withMessage('Invalid date format'),
+    body('images').isArray().withMessage('Images must be an array'),
+    body('images.*').isString().withMessage('Invalid image format'),
+    // checkId('categoryId', 'Category', true),
+  ],
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    // Validate input
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({ errors: errors.array() });
+      return;
+    }
 
-  if (error || !data.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    try {
+      // Create product
+      const product = new Product({
+        ...req.body,
+        sellerId: req.userId, // Extracted from JWT
+      });
+
+      await product.save();
+
+      // Return response (exclude unnecessary fields)
+      const responseProduct = product.toObject();
+      //   delete responseProduct.__v;
+
+      res.status(201).json(responseProduct);
+    } catch (error) {
+      console.error('Create product error:', error);
+      res.status(500).json({ error: 'Failed to create product' });
+    }
   }
+);
 
-  req.user = data.user; // Attach user info to request
-  next();
-};
-
-// Add a new product
-router.post('/add', authenticate, async (req: any, res: any) => {
-  const { name, description, starting_price, closing_at } = req.body;
-  const seller_id = req.user.id; // Get the authenticated user's ID
-
+// Get All Products
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { data, error }: { data: any; error: any } = await supabase.from('products').insert([
-      {
-        seller_id,
-        name,
-        description,
-        starting_price,
-        current_price: starting_price, // Set current price to starting price
-        closing_at,
-      },
-    ]);
-
-    if (error) return res.status(400).json({ error: error.message });
-
-    res.status(201).json({ message: 'Product added successfully', product: data[0] });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Place a bid on a product
-router.post('/bid', authenticate, async (req: any, res: any) => {
-  const { product_id, bid_amount } = req.body;
-  const buyer_id = req.user.id; // Get the authenticated user's ID
-
-  try {
-    const { data, error }: { data: any; error: any } = await supabase.from('bids').insert([
-      {
-        product_id,
-        buyer_id,
-        bid_amount,
-      },
-    ]);
-
-    if (error) return res.status(400).json({ error: error.message });
-
-    // Notify all connected clients about the new bid
-    // const message = JSON.stringify({ product_id, bid_amount, buyer_id });
-    // wss.clients.forEach((client) => {
-    //   if (client.readyState === WebSocket.OPEN) {
-    //     client.send(message);
-    //   }
-    // });
-
-    res.status(201).json({ message: 'Bid placed successfully', bid: data[0] });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    const products = await Product.find()
+      .select('-__v')
+      .populate('categoryId', 'name') // Populate category name
+      .populate('sellerId', 'email'); // Populate seller email.sort({ createdAt: -1 });
+    res.json({ products: products });
+  } catch (error) {
+    console.error('Get all product error:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
-// Get all products
-router.get('/', async (req: any, res: any) => {
+// Get a Single Product
+router.get('/:productId', checkId('productId', 'Product'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { data, error } = await supabase.from('products').select('*');
+    const product = await Product.findById(req.params?.productId)
+      .select('-__v')
+      .populate('categoryId', 'name') // Populate category name
+      .populate('sellerId', 'email'); // Populate seller email;
 
-    if (error) return res.status(400).json({ error: error.message });
-
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    res.json({ product: product });
+  } catch (error) {
+    console.error('Get a product error:', error);
+    res.status(500).json({ error: 'Failed to fetch product' });
   }
 });
 
-// Get a specific product by ID along with its bids
-router.get('/:id', async (req: any, res: any) => {
-  const { id } = req.params;
+// Update a Product
+router.put(
+  '/:productId',
+  [
+    body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
+    body('description').optional().trim().notEmpty().withMessage('Description cannot be empty'),
+    body('categoryId')
+      .optional()
+      .isMongoId()
+      .withMessage('Invalid category ID')
+      .custom(async (value) => {
+        const category = await Category.findById(value);
+        if (!category) throw new Error('Category does not exist');
+        return true;
+      }),
+    body('startingBid').optional().isFloat({ min: 0 }).withMessage('Starting bid must be a positive number'),
+    body('auctionEndTime').optional().isISO8601().withMessage('Invalid date format'),
+    checkId('productId', 'Product'),
+  ],
+  async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+    // Validate request body
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
+    try {
+      // Find the product and verify ownership
+      const product = await Product.findById(req.params.id);
+
+      // Check if user is the seller
+      if (product.sellerId.toString() !== req.userId) {
+        return res.status(403).json({ error: 'Unauthorized: You are not the seller' });
+      }
+
+      // Update the product
+      const updatedProduct = await Product.findByIdAndUpdate(
+        req.params.id,
+        { $set: req.body },
+        { new: true, runValidators: true } // Return updated document and validate
+      )
+        .select('-__v')
+        .populate('category', 'name')
+        .populate('sellerId', 'name email');
+
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error('Update product error:', error);
+      res.status(500).json({ error: 'Failed to update product' });
+    }
+  }
+);
+
+// Delete a product
+router.delete('/:productId', checkId('productId', 'Product'), async (req: Request, res: Response): Promise<void> => {
   try {
-    // Fetch the product details
-    const { data: product, error: productError } = await supabase.from('products').select('*').eq('id', id).single();
+    await Product.findByIdAndDelete(req.params?.productId).select('-__v');
 
-    if (productError) return res.status(400).json({ error: productError.message });
-
-    // Fetch the bids for the product
-    const { data: bids, error: bidsError } = await supabase.from('bids').select('*').eq('product_id', id);
-
-    if (bidsError) return res.status(400).json({ error: bidsError.message });
-
-    // Combine product and bids data
-    res.status(200).json({ product, bids });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    res.json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({ error: 'Failed to Product category' });
   }
 });
 
