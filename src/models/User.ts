@@ -4,12 +4,14 @@ import { IUser } from '../types/user.types';
 import moment from 'moment';
 import { DATETIME_FORMAT } from '../constants/creds.constants';
 
-const userSchema = new Schema<IUser>({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  name: { type: String },
-  createdAt: { type: String, default: moment().utc().format(DATETIME_FORMAT) },
-});
+const userSchema = new Schema<IUser>(
+  {
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    name: { type: String },
+  },
+  { timestamps: true }
+);
 
 // Hash password before saving
 userSchema.pre<IUser>('save', async function (next) {
