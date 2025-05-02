@@ -52,6 +52,7 @@ app.get('/public', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || 'http://localhost';
 
 // Create a WebSocket server
 const wss = new WebSocket.Server({ noServer: true });
@@ -71,7 +72,7 @@ wss.on('connection', (ws) => {
 
 // Upgrade HTTP server to WebSocket server
 const server = app.listen(PORT, () => {
-  console.log(`Vanakam da maple port: ${PORT} la irundhu`);
+  console.log(`Vanakam da maple, ${HOST}:${PORT} la irundhu`);
 });
 
 server.on('upgrade', (request, socket, head) => {
